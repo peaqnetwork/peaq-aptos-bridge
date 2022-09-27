@@ -1,0 +1,9 @@
+[package]
+name = "aptos-peaq-bridge"
+version = "0.0.1"
+upgrade_policy = "compatible"
+​
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "devnet" }
+AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token/", rev = "devnet" }
+​
