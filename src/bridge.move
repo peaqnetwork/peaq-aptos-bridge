@@ -42,6 +42,7 @@ module aptosBridge::aptos_bridge {
         timestamp: u64,
         nonce: u128,
         chainId: u8,
+        burned:boolean,
     }
 
     struct Configuration has key,store {
@@ -101,7 +102,7 @@ module aptosBridge::aptos_bridge {
                 recipent:user_add,
                 timestamp:timestamp::now_seconds(),
                 nonce:nonce,
-                chainId,
+                chainId:chainId,
             }
         );
 
@@ -133,6 +134,7 @@ module aptosBridge::aptos_bridge {
                 timestamp:timestamp::now_seconds(),
                 nonce:nonce,
                 chainId,
+                burned:true,
             }
         );
 
