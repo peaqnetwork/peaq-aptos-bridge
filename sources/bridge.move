@@ -1,5 +1,4 @@
 //aptos-bridge contract
-address {{sender}} {
 module aptosBridge::aptos_bridge {
 
     use 0x1::Signer;
@@ -14,7 +13,7 @@ module aptosBridge::aptos_bridge {
     use aptos_framework::table::{Self, Table};
 
     // bridge admin
-    const ADMIN:address = @{{sender}};
+    const ADMIN:address = @aptosBridge;
 
     // error constants
     const E_ALREADY_DEPLOYED =0;
@@ -76,7 +75,7 @@ module aptosBridge::aptos_bridge {
         );
     }
 
-    public entry fun transfer_from (userAccount:&signer, bridgeAddress:address, amount:u64) acquires Configuration{
+    public entry fun transfer_from (userAccount:&signer,userAddressPeaq:address, amount:u64) acquires Configuration{
         
         let user_add = signer::address_of(userAccount);
         let bridge_data = borrow_global_mut<Configuration>(ADMIN);
@@ -91,15 +90,15 @@ module aptosBridge::aptos_bridge {
         let currentAmount = table::borrow(escrowAccounts,user_add);
         table::upsert(escrowAccounts,user_add,currentAmount+amount);
         
-        coin::transfer<aptos_coin::AptosCoin>(user_add,bridgeAddress,amount);
-        coin::transfer<wraped_apt::WrappedApt>(bridgeAddress,user_add,amount);
+        coin::transfer<aptos_coin::AptosCoin>(user_add,@aptosBridge,amount);
+
         bridge_data.nonce = nonce + 1;
        
         Event::emit_event(
             &mut bridge_data.event_deposit,
             eventDeposit {
                 amount:amount,
-                recipent:user_add,
+                recipent:userAddressPeaq,
                 timestamp:timestamp::now_seconds(),
                 nonce:nonce,
                 chainId:chainId,
@@ -108,7 +107,20 @@ module aptosBridge::aptos_bridge {
 
     }
 
-    public entry fun burn_wrapped (userAccount:&signer, bridgeAddress:address, amount:u64) acquires Configuration{
+      public entry fun transfer_to (userAccount:address, amount:u64) acquires Configuration{
+        
+        let bridge_data = borrow_global_mut<Configuration>(ADMIN);
+
+        let (active,escrowAccounts,nonce,chainId) = &mut bridge_data;
+        assert!(*active == true, Errors::custom( E_BRIDGE_PAUSED));
+        
+        coin::transfer<wraped_apt::WrappedApt>(@aptosBridge,userAccount,amount);
+
+        bridge_data.nonce = nonce + 1;
+
+    }
+
+    public entry fun burn_wrapped (userAccount:&signer, amount:u64) acquires Configuration{
         
         let user_add = signer::address_of(userAccount);
         let bridge_data = borrow_global_mut<Configuration>(ADMIN);
@@ -123,7 +135,7 @@ module aptosBridge::aptos_bridge {
         table::upsert(escrowAccounts,user_add,currentAmount - amount);
 
         coin::burn_from<wraped_apt::WrappedApt>(user_add,amount);
-        coin::transfer<aptos_coin::AptosCoin>(bridgeAddress,user_add,amount);
+        coin::transfer<aptos_coin::AptosCoin>(@aptosBridge,user_add,amount);
         bridge_data.nonce = nonce + 1;
 
         Event::emit_event(
@@ -197,5 +209,4 @@ module aptosBridge::aptos_bridge {
         assert!(admin_add == ADMIN,Errors::custom(E_FORBIDDEN));
     }
 
-}
 }

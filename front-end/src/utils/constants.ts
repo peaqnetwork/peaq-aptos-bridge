@@ -1,0 +1,1 @@
+export const REGEXT_NUMBERS_WITH_DECIMALS = /^[0-9\b]+$/;

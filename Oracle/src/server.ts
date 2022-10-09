@@ -1,16 +1,15 @@
-import "reflect-metadata"
-import express from 'express';
-import dotenv from 'dotenv';
+import "reflect-metadata";
+import express from "express";
+import dotenv from "dotenv";
+import { port } from "./config";
+import routes from "./routes/index";
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
 
-app.get('/', (req, res) => {
-  res.send('Express + TypeScript Server');
-});
+app.use("/api", routes);
 
-app.listen(port, () => {
+app.listen(port || 3000, () => {
   console.log(`[server]: Server is running at https://localhost:${port}`);
 });

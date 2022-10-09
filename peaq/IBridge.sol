@@ -3,7 +3,8 @@ pragma solidity 0.8.9;
 
 interface IBridge {
     
-    function transfer_from(uint64 amount) external;
+    function transfer_from(uint64 amount, address aptosAddress) external;
+    function transfer_to (uint64 amount) external;
 
     function burn_wrapped(uint64 amount) external;
 

@@ -1,0 +1,211 @@
+.bridge__page {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: rgb(28, 29, 31);
+    position: relative;
+}
+
+.bridge__form {
+    width: 530px;
+    max-height: 429px;
+    background-color: rgb(37, 38, 43);
+    background-image: linear-gradient(
+        rgb(102, 102, 238) -50.84%,
+        rgb(31, 33, 35) 121.77%
+    );
+    border-radius: 20px;
+    border: 1px solid rgb(55, 58, 64);
+    box-shadow: rgb(0 0 0 / 5%) 0px 1px 3px, rgb(0 0 0 / 5%) 0px 10px 15px -5px,
+        rgb(0 0 0 / 4%) 0px 7px 7px -5px;
+    color: white;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 42px;
+    padding-top: 42px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.wallet-connect__container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.wallet-connect__heading {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.wallet-connect__button {
+    line-height: 1.5rem;
+    font-weight: 600;
+    font-size: 21px;
+    padding-left: 19px;
+    padding-bottom: 15px;
+    padding-top: 15px;
+    --tw-bg-opacity: 1;
+    background-color: rgb(28 29 31 / var(--tw-bg-opacity));
+    outline: none;
+    border: none;
+    border-radius: 20px;
+    padding: 16px 20px;
+    white-space: nowrap;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    -webkit-box-align: center;
+    align-items: center;
+    color: white;
+    cursor: pointer;
+    height: 73px;
+}
+
+.form__connect-btn-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-flow: row wrap;
+    -webkit-box-align: center;
+    align-items: center;
+    -webkit-box-pack: start;
+    justify-content: flex-start;
+    gap: 16px;
+    box-sizing: border-box;
+    -webkit-box-flex: 0;
+    flex-grow: 0;
+    margin-bottom: 16px;
+}
+
+.connect-wallet-arrows {
+    position: absolute;
+    object-fit: cover;
+    width: 45px;
+    left: 50%;
+    height: 45px;
+    z-index: 10;
+    top: 64%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+}
+
+.textarea {
+    -webkit-tap-highlight-color: transparent;
+    appearance: none;
+    box-sizing: border-box;
+    display: block;
+    text-align: left;
+    min-height: 36px;
+    border: 1px solid rgb(55, 58, 64);
+    transition: border-color 100ms ease 0s;
+    padding: 25px 155px 10px 91px;
+    background-color: rgb(28, 29, 31);
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    border-radius: 19px;
+    color: rgb(250, 250, 250);
+    resize: none;
+    font-size: 75px;
+    outline: none;
+    height: 190px;
+}
+
+.textarea {
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
+}
+.textarea::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+}
+
+.textarea__container {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.textarea__send {
+    position: absolute;
+    line-height: 34px;
+    font-size: 21px;
+    top: 43px;
+    left: 19px;
+}
+
+.textarea__currency-wrapper {
+    position: absolute;
+    right: 19px;
+    top: 43px;
+    display: flex;
+    flex-direction: column;
+}
+
+.textarea__currency {
+    font-size: 45px;
+    line-height: 53px;
+}
+
+.textarea__balance {
+    font-size: 13px;
+    line-height: 15px;
+}
+
+.form__submit {
+    border-radius: 20px;
+    height: 69px;
+    outline: none;
+    box-shadow: none;
+    width: 100%;
+    --tw-bg-opacity: 1;
+    border: none;
+    font-size: 24px;
+    color: #fafafa;
+    cursor: pointer;
+}
+
+.form__submit--enabled {
+    background-color: rgb(102 102 238 / 1);
+}
+
+.form__submit--disabled {
+    color: rgb(250 250 250/1);
+    background-color: rgb(164 164 164/1);
+}
+
+.pos-center {
+    position: fixed;
+    top: calc(50% - 40px);
+    left: calc(50% - 40px);
+}
+
+.loaderWrapper {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.7);
+}
+
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid rgb(102 102 238 / 1);
+    border-radius: 50%;
+    position: absolute;
+    left: 49%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    animation: spin 1s linear infinite;
+    z-index: 500;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
