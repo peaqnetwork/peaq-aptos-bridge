@@ -1,25 +1,32 @@
 import Web3 from "web3";
 import { SandboxedJob } from "bullmq";
-import { aptosContractAddress, aptosUrlDev, peaqRpcUrl } from "../config";
+import {
+  AppDataSource,
+  peaqContractAddress,
+  peaqRpcUrl,
+} from "../config";
 import handleTransferFromPeaqToAptos from "../utils/handleTransferFromPeaqToAptos";
-const bridge_abi = require("../abi/bridge_abi.json");
-const Contract = require("web3-eth-contract");
+import { ChainData } from "../entity/ChainData";
+import { Log } from "web3-core";
 
 module.exports = async (job: SandboxedJob) => {
-  Contract.setProvider(aptosUrlDev);
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
 
-  const contract = new Contract(bridge_abi, aptosContractAddress);
+  // const contract = new Contract(bridge_abi, aptosContractAddress);
+  const chainDataRepo = AppDataSource.getRepository(ChainData);
+  const chainData = await chainDataRepo.find();
+
   const options = {
-    filter: {
-      value: [],
-    },
-    fromBlock: 0,
+    fromBlock: chainData[0].lastProccessedBlock,
+    address: peaqContractAddress,
   };
 
-  contract.events
-    .eventDeposit(options)
-    .on("data", async (event) => {
-      await handleTransferFromPeaqToAptos(event);
-    })
-    .on("error", (err) => console.error);
+  const web3 = new Web3(peaqRpcUrl);
+  const logs: Log[] = await web3.eth.getPastLogs(options);
+
+  for (const log of logs) {
+    await handleTransferFromPeaqToAptos(log);
+  }
 };

@@ -8,6 +8,7 @@
       "module": "commonjs",
       "moduleResolution": "node",
       "outDir": "./build",
+      "resolveJsonModule":true,
       "emitDecoratorMetadata": true,
       "experimentalDecorators": true,
       "esModuleInterop": true,

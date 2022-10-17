@@ -1,212 +1,186 @@
 //aptos-bridge contract
-module aptosBridge::aptos_bridge {
+module newBridgeLatest::new_bridge_latest {
 
-    use 0x1::Signer;
-    use 0x1::vector;
-    use 0x1::Errors;
-    use 0x1::Event::{Self, EventHandle};
-    use aptos_std::event;
-    use aptos_framework::account::{Self, SignerCapability};
-    use aptos_framework::coin::{Self, Coin};
+    use std::signer;
+    use std::event::{Self, EventHandle};
+    use aptos_framework::account::{Self};
+    use aptos_framework::coin::{Self};
     use aptos_framework::timestamp;
-    use aptos_framework::aptos_coin::AptosCoin;
-    use aptos_framework::table::{Self, Table};
+    use aptos_framework::aptos_coin;
+    use std::string::String;
+    use WrappedAptNewLatest::wrapped_apt_new_latest::WrappedApt;
 
     // bridge admin
-    const ADMIN:address = @aptosBridge;
+    const ADMIN:address = @newBridgeLatest;
 
     // error constants
-    const E_ALREADY_DEPLOYED =0;
-    const E_ALREADY_PAUSED =1; 
-    const E_ALREADY_UNPAUSED =2;
-    const E_BRIDGE_PAUSED =3;
-    const E_ADMIN_NOT_INITIALIZED =4;
-    const E_INVALID_DEPLOYER =5;
-    const E_INSUFFICIENT_BALANCE =6;
-    const E_FORBIDDEN =7;
-    const E_CONFIGURATION_ALREADY_EXISTS =8;
+    const E_ALREADY_DEPLOYED: u8 = 0;
+    const E_ALREADY_PAUSED: u8 =1; 
+    const E_ALREADY_UNPAUSED: u8 =2;
+    const E_BRIDGE_PAUSED: u8 =3;
+    const E_ADMIN_NOT_INITIALIZED: u8 =4;
+    const E_INVALID_DEPLOYER: u8 =5;
+    const E_INSUFFICIENT_BALANCE: u8 =6;
+    const E_FORBIDDEN: u8 =7;
+    const E_CONFIGURATION_ALREADY_EXISTS: u8 =8;
+    const E_CONFIGURATION_NOT_INITIALIZED:u8 =9;
+    const E_INSUFFICIENT_APTOS_FEE:u8 =10;
 
     // we will use deposit instead of transfer as transfer does'nt emit any event on aptos
-    struct eventDeposit has store {
-        amount: u128,
-        recipent: address,
+    struct EventDeposit has store,drop {
+        amount: u64,
+        recipent: String,
         timestamp: u64,
         nonce: u128,
         chainId: u8,
-    }
-
-    struct eventBurned has store {
-        amount: u128,
-        recipent: address,
-        timestamp: u64,
-        nonce: u128,
-        chainId: u8,
-        burned:boolean,
     }
 
     struct Configuration has key,store {
         admin: address,
         chainId: u8,
         nonce: u128,
-        active: boolean,
-        escrowAccounts:Table<address,u128>,
+        active: bool,
         fee:u64,
-        event_deposit: EventHandle<eventDeposit>
-        event_burned: EventHandle<eventBurned>
+        event_deposit: EventHandle<EventDeposit>
     }
 
-    public fun intialize(account: &signer, chainId:u8, fee:u64) {
+    public entry fun intialize(account: &signer) {
 
-        let address_ = Signer::address_of(account);
-        assert!(addr == ADMIN, E_INVALID_DEPLOYER);
+        let address_ = signer::address_of(account);
+        assert!(address_ == ADMIN, E_INVALID_DEPLOYER);
 
-        assert!(!exists<Configuration>(address), Errors::custom(E_CONFIGURATION_ALREADY_EXISTS));
+        assert!(!exists<Configuration>(address_), E_CONFIGURATION_ALREADY_EXISTS);
         
         move_to<Configuration>(account, Configuration {
-                admin: address,
-                chainId,
+                admin: address_,
+                chainId:2,
                 nonce: 0,
                 active:true,
-                escrowAccounts:table::new(),
-                fee,
-                event_deposit: Event::new_event_handle<eventDeposit>(account),
-                event_burned: Event::new_event_handle<eventBurned>(account),
+                fee:0,
+                event_deposit: account::new_event_handle<EventDeposit>(account),
             }
         );
     }
 
-    public entry fun transfer_from (userAccount:&signer,userAddressPeaq:address, amount:u64) acquires Configuration{
+    public entry fun transfer_from (userAccount:&signer,userAddressPeaq:String, amount:u64) acquires Configuration{
+        assert_is_configured();
         
         let user_add = signer::address_of(userAccount);
+
         let bridge_data = borrow_global_mut<Configuration>(ADMIN);
 
-        let (active,escrowAccounts,nonce,chainId) = &mut bridge_data;
-        assert!(*active == true, Errors::custom( E_BRIDGE_PAUSED));
-        
-        let balance = coin::balance<aptos_coin::AptosCoin>(user_add);
-        assert!(balance > amount , Errors::custom(E_INSUFFICIENT_BALANCE));
-        
-        
-        let currentAmount = table::borrow(escrowAccounts,user_add);
-        table::upsert(escrowAccounts,user_add,currentAmount+amount);
-        
-        coin::transfer<aptos_coin::AptosCoin>(user_add,@aptosBridge,amount);
+        let active = &bridge_data.active;
+        let nonce = &mut bridge_data.nonce;
+        let chainId = &bridge_data.chainId;
+        let fee = &bridge_data.fee;
 
-        bridge_data.nonce = nonce + 1;
+
+        assert!(*active == true,  E_BRIDGE_PAUSED);
+        
+        let balance = coin::balance<WrappedApt>(user_add);
+        assert!(balance > amount , E_INSUFFICIENT_BALANCE);
+
+        let aptosBalanace = coin::balance<aptos_coin::AptosCoin>(user_add);
+        assert!(aptosBalanace > fee , E_INSUFFICIENT_APTOS_FEE);
+
+        coin::transfer<aptos_coin::AptosCoin>(@newBridgeLatest,userAccount,*fee);
+        coin::transfer<WrappedApt>(userAccount,@newBridgeLatest,amount);
+
+        *nonce = *nonce + 1;
        
-        Event::emit_event(
+        event::emit_event(
             &mut bridge_data.event_deposit,
-            eventDeposit {
+            EventDeposit {
                 amount:amount,
                 recipent:userAddressPeaq,
                 timestamp:timestamp::now_seconds(),
-                nonce:nonce,
-                chainId:chainId,
+                nonce:*nonce,
+                chainId:*chainId,
             }
         );
 
     }
 
-      public entry fun transfer_to (userAccount:address, amount:u64) acquires Configuration{
+      public entry fun transfer_to (account:&signer,userAccount:address, amount:u64) acquires Configuration{
+        assert_is_admin(account);
+        assert_is_configured();
         
         let bridge_data = borrow_global_mut<Configuration>(ADMIN);
 
-        let (active,escrowAccounts,nonce,chainId) = &mut bridge_data;
-        assert!(*active == true, Errors::custom( E_BRIDGE_PAUSED));
+        let active = &bridge_data.active;
+        let nonce = &mut bridge_data.nonce;
+        assert!(*active == true, E_BRIDGE_PAUSED);
         
-        coin::transfer<wraped_apt::WrappedApt>(@aptosBridge,userAccount,amount);
+        WrappedAptNewLatest::wrapped_apt_new_latest::mint_to(account,userAccount,amount);
 
-        bridge_data.nonce = nonce + 1;
-
-    }
-
-    public entry fun burn_wrapped (userAccount:&signer, amount:u64) acquires Configuration{
-        
-        let user_add = signer::address_of(userAccount);
-        let bridge_data = borrow_global_mut<Configuration>(ADMIN);
-        
-        let (active,escrowAccounts,nonce,chainId) =&mut bridge_data;
-        assert!(*active == true, Errors::custom(E_BRIDGE_PAUSED));
-
-        let balance = coin::balance<wraped_apt::WrappedApt>(user_add);
-        assert!(balance > amount , Errors::custom(E_INSUFFICIENT_BALANCE));
-
-        let currentAmount = table::borrow(escrowAccounts, user_add);
-        table::upsert(escrowAccounts,user_add,currentAmount - amount);
-
-        coin::burn_from<wraped_apt::WrappedApt>(user_add,amount);
-        coin::transfer<aptos_coin::AptosCoin>(@aptosBridge,user_add,amount);
-        bridge_data.nonce = nonce + 1;
-
-        Event::emit_event(
-            &mut bridge_data.event_burned,
-            eventBurned {
-                amount:amount,
-                recipent:user_add,
-                timestamp:timestamp::now_seconds(),
-                nonce:nonce,
-                chainId,
-                burned:true,
-            }
-        );
+        *nonce = *nonce + 1;
 
     }
 
     // utility methods
     public entry fun pause(admin:&signer) acquires Configuration {
 
-        check_is_admin(admin);
+        assert_is_admin(admin);
+        assert_is_configured();
 
-        let admin_add = Signer::address_of(admin);
+        let admin_add = signer::address_of(admin);
         let bridge_data = borrow_global_mut<Configuration>(admin_add);
         let active = &mut bridge_data.active;
 
-        assert!(*active == true, Errors::custom(E_ALREADY_PAUSED));
+        assert!(*active == true, E_ALREADY_PAUSED);
         *active = false;
 
     }
 
     public entry fun un_pause(admin:&signer) acquires Configuration {
         
-        check_is_admin(admin);
+        assert_is_admin(admin);
+        assert_is_configured();
         
-        let admin_add = Signer::address_of(admin);
+        let admin_add = signer::address_of(admin);
         let bridge_data = borrow_global_mut<Configuration>(admin_add);
         let active = &mut bridge_data.active;
-
-        assert!(*active == false, Errors::custom(E_ALREADY_UNPAUSED));
+        assert!(*active == false, E_ALREADY_UNPAUSED);
         *active = true;
     }
 
     public fun modify_fee(admin:&signer, amount:u64) acquires Configuration {
         
-        check_is_admin(admin);
+        assert_is_admin(admin);
+        assert_is_configured();
 
         let config = borrow_global_mut<Configuration>(ADMIN);
-        config.fee = amount;
+        config.fee = amount
 
     }
 
     public fun get_fee():u64 acquires Configuration {
+        assert_is_configured();
         borrow_global<Configuration>(ADMIN).fee
     }
 
-    public fun get_chain_id():u64 acquires Configuration {
+    public fun get_chain_id():u8 acquires Configuration {
+        assert_is_configured();
         borrow_global<Configuration>(ADMIN).chainId
     }
 
     public fun set_chain_id(admin:&signer, new_id:u8) acquires Configuration {
 
-        check_is_admin(admin);
+        assert_is_admin(admin);
+        assert_is_configured();
 
         let config = borrow_global_mut<Configuration>(ADMIN);
         config.chainId = new_id;
 
     }
 
-    fun check_is_admin(admin:&signer) {
-        let admin_add = Signer::address_of(admin);
-        assert!(admin_add == ADMIN,Errors::custom(E_FORBIDDEN));
+    fun assert_is_admin(admin:&signer) {
+        let admin_add = signer::address_of(admin);
+        assert!(admin_add == ADMIN,E_FORBIDDEN);
+    }
+
+    fun assert_is_configured (){
+        assert!(exists<Configuration>(@newBridgeLatest), E_CONFIGURATION_NOT_INITIALIZED);
     }
 
 }

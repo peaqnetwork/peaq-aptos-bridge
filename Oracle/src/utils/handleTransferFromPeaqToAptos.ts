@@ -1,47 +1,142 @@
-import { HexString } from "aptos";
-import axios from "axios";
 import {
+  AptosAccount,
+  AptosAccountObject,
+  AptosClient,
+  BCS,
+  TxnBuilderTypes,
+} from "aptos";
+import Web3 from "web3";
+import { Log } from "web3-core";
+import { TransactionPeaq } from "../entity/TransactionsPeaq";
+import { toBN } from "web3-utils";
+import { ChainData } from "../entity/ChainData";
+import {
+  AppDataSource,
   aptosClient,
   aptosContractAddress,
   aptosDefaultGas,
   aptosMaxGas,
+  aptosPrivateKey,
   aptosPublicKey,
-  aptosUrlDev,
+  peaqRpcUrl,
 } from "../config";
 
-export default async function (params: any) {
+export default async function (params: Log) {
+  console.log("log", params);
+
+  const transactionPeaqRepo = AppDataSource.getRepository(TransactionPeaq);
+  const chainDataRepo = AppDataSource.getRepository(ChainData);
+  const checkTransactionAlreadyHappened = await transactionPeaqRepo.findOne({
+    where: {
+      txHash: params.transactionHash,
+    },
+  });
+
+  if (checkTransactionAlreadyHappened) {
+    return;
+  }
   const { sequence_number: sequenceNumber } = await aptosClient.getAccount(
     aptosContractAddress
   );
+  const web3 = new Web3(peaqRpcUrl);
+  const decodedData = web3.eth.abi.decodeLog(
+    [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "recipent",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "timestamp",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint128",
+        name: "nonce",
+        type: "uint128",
+      },
+      {
+        indexed: false,
+        internalType: "uint8",
+        name: "chainId",
+        type: "uint8",
+      },
+    ],
+    params.data,
+    params.topics
+  );
 
-  const transaction = JSON.stringify({
-    sender: aptosContractAddress,
-    sequence_number: sequenceNumber,
-    max_gas_amount: `${aptosMaxGas}`,
-    gas_unit_price: `${aptosDefaultGas}`,
-    expiration_timestamp_secs: "32425224034",
-    payload: {
-      type: "entry_function_payload",
-      function: `${aptosContractAddress}::bridge::transfer_to`,
-      type_arguments: [],
-      arguments: [params.returnValues.aptosAddress, params.returnValues.amount],
-    },
-    signature: {
-      type: "ed25519_signature",
-      public_key: aptosPublicKey,
-      signature: HexString.fromUint8Array(new Uint8Array(64)).hex(),
-    },
-  });
-  const options = {
-    method: "POST",
-    url: `${aptosUrlDev}/transactions`,
-    headers: { "Content-Type": "application/json" },
-    data: transaction,
+  const chainID = await aptosClient.getChainId();
+
+  const {
+    AccountAddress,
+    EntryFunction,
+    TransactionPayloadEntryFunction,
+    RawTransaction,
+    ChainId,
+  } = TxnBuilderTypes;
+  const aptosAmount = toBN(String(decodedData.amount))
+    .div(toBN("100000000000000000"))
+    .mul(toBN("100000"));
+  const payload = new TransactionPayloadEntryFunction(
+    EntryFunction.natural(
+      `${aptosContractAddress}::wrapped_apt_new_latest`,
+      "mint_to",
+      [],
+      [
+        BCS.bcsToBytes(AccountAddress.fromHex(decodedData.recipent)),
+        BCS.bcsSerializeUint64(aptosAmount.toNumber()),
+      ]
+    )
+  );
+  const rawTxn = new RawTransaction(
+    AccountAddress.fromHex(aptosContractAddress),
+    BigInt(sequenceNumber),
+    payload,
+    BigInt(aptosMaxGas),
+    BigInt(aptosDefaultGas),
+    BigInt(Math.floor(Date.now() / 1000) + 10),
+    new ChainId(chainID)
+  );
+  const accountObject: AptosAccountObject = {
+    privateKeyHex: aptosPrivateKey,
+    publicKeyHex: aptosPublicKey,
+    address: aptosContractAddress,
   };
-  try {
-    const response = await axios.request(options);
-    console.log("response in transfer from peaq to aptos", response.data);
-  } catch (error) {
-    console.log("error in sending transfer to for aptos");
+  const account = AptosAccount.fromAptosAccountObject(accountObject);
+
+  const bcsTxn = AptosClient.generateBCSTransaction(account, rawTxn);
+  const transactionRes = await aptosClient.submitSignedBCSTransaction(bcsTxn);
+  //@ts-ignore
+  const { vm_status } = await aptosClient.waitForTransactionWithResult(
+    transactionRes.hash
+  );
+  if (vm_status === "Executed successfully") {
+    const transactionPeaq = new TransactionPeaq();
+    transactionPeaq.amount = decodedData.amount;
+    transactionPeaq.processedAt = Math.floor(Date.now() / 1000);
+    transactionPeaq.blockTime = decodedData.timestamp;
+    transactionPeaq.nonce = decodedData.nonce;
+    transactionPeaq.txHash = params.transactionHash;
+    await transactionPeaqRepo.save(transactionPeaq);
+    // update last block read
+    const chainData = await chainDataRepo.findOne({
+      where: {
+        chainName: "Agung",
+      },
+    });
+    chainData.lastProccessedBlock = params.blockNumber;
+    return await chainDataRepo.save(chainData);
   }
+  return;
 }

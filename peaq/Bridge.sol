@@ -1,114 +1,70 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IBridge.sol";
 
-contract Bridge is IBridge {
-    using SafeERC20 for IERC20;
 
+contract Bridge  {
+    
     address public admin;
     uint8 public chainId;
     uint128 nonce;
     bool public active;
     uint64 public fee;
 
-    IERC20 public transerCoin;
-    IERC20 public wrappedCoin;
-
-    mapping(address => uint128) public escrowAccounts;
 
     event eventDeposit(
-        uint128 amount,
-        address recipent,
-        uint64 timestamp,
+        uint256 amount,
+        bytes32 recipent,
+        uint256 timestamp,
         uint128 nonce,
         uint8 chainId
     );
 
-    event eventBurned(
-        uint128 amount,
-        address recipent,
-        uint64 timestamp,
-        uint128 nonce,
-        uint8 chainId,
-        bool burned
-    );
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not Allowed");
+        _;
     }
-
+    
     constructor(
-        IERC20 transferCoin,
-        IERC20 wrappedCoin,
-        address admin,
-        uint8 chainId,
-        uint128 nonce,
-        bool active,
-        uint64 fee
+        uint8 chainId_,
+        bool active_,
+        uint64 fee_
     ) {
-        require(address(transerCoin) != address(0), "Invalid Address");
-        require(address(wrappedCoin) != address(0), "Invalid Address");
-
         admin = msg.sender;
-        transerCoin = transerCoin;
-        wrappedCoin = wrappedCoin;
         nonce = 0;
-        chainId = chainId;
-        active = active;
-        fee = fee;
+        chainId = chainId_;
+        active = active_;
+        fee = fee_;
     }
 
-    function transfer_from(uint64 amount, address aptosAddress) external {
+    function transfer_from(bytes32 peaqAddress) external payable
+     {
         require(active == true, "Bridge is paused");
-
-        uint256 balance = transferCoin.balanceOf(msg.sender);
-        require(balance > amount, "Insufficient balance");
-
-        uint128 currentAmount = escrowAccounts[msg.sender];
-        escrowAccounts[msg.sender] = currentAmount + amount;
+        uint256 balance = msg.sender.balance;
+        require(balance > msg.value, "Insufficient balance");
         nonce = nonce + 1;
-
-        transferCoin.safeTransferFrom(msg.sender, address(this), amount);
-        wrappedCoint.mint(msg.sender, amount);
-
-        emit eventDeposit(amount,aptosAddress, block.timestamp, nonce, chainId);
+        emit eventDeposit(msg.value,peaqAddress, block.timestamp, nonce, chainId);
     }
 
-    function transfer_to(uint64 amount) external {
+    function transfer_to(address payable user,uint256 amount) external onlyAdmin {
         require(active == true, "Bridge is paused");
         nonce = nonce + 1;
-        wrappedCoint.mint(msg.sender, amount);
-    }
-
-    function burn_wrapped(uint64 amount,address aptosAddress) external {
-        require(active == true, "Bridge is paused");
-
-        uint256 balance = wrappedCoin.balanceOf(msg.sender);
-        require(balance > amount, "Insufficient balance");
-
-        uint128 currentAmount = escrowAccounts[msg.sender];
-        escrowAccounts[msg.sender] = currentAmount - amount;
-        nonce = nonce + 1;
-
-        wrappedCoin.burnFrom(msg.sender, amount);
-        transferCoin.safeTransferFrom(address(this), msg.sender, amount);
-
-        emit eventBurned(amount, aptosAddress, block.timestamp, nonce, chainId);
+        user.transfer(amount);
     }
 
     function pause() external onlyAdmin {
         require(active == false, "Bridge Already Active");
-        pause = true;
+        active = true;
     }
 
     function un_pause() external onlyAdmin {
         require(active == true, "Bridge Already Paused");
-        pause = false;
+        active = false;
     }
 
-    function get_fee() external view returns (uint64) {
+    function get_fee() external view  onlyAdmin returns (uint64){
         return fee;
     }
 
@@ -120,7 +76,8 @@ contract Bridge is IBridge {
         return chainId;
     }
 
-    function set_chain_id(uint8 chainId) external onlyAdmin {
-        fee = chainId;
+    function set_chain_id(uint8 chainId_) external onlyAdmin {
+        chainId = chainId_;
     }
+
 }

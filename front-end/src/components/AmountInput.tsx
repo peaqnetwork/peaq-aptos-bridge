@@ -8,7 +8,7 @@ type Props = {
 
 export const AmountInput = ({ onChange, value }: Props) => {
     const _onChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
-        REGEXT_NUMBERS_WITH_DECIMALS.test(e.target.value) && onChange(e);
+     onChange(e);
     };
 
     // const onKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {

@@ -1,9 +1,10 @@
 [package]
-name = "aptos-peaq-bridge"
+name = "aptos-peaq-bridge-new"
 version = "0.0.1"
-upgrade_policy = "compatible"
-​
+[addresses]
+std = "0x1"
+newBridgeLatest = "0xaa15900b0be22a31327223f4f7b26254bb5d36b922a5fcdfa057604cd8754f24"
+WrappedAptNewLatest = "0xaa15900b0be22a31327223f4f7b26254bb5d36b922a5fcdfa057604cd8754f24"
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "devnet" }
 AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token/", rev = "devnet" }
-​

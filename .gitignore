@@ -1,0 +1,4 @@
+/build
+/.aptos
+/.vscode
+yarn-error.log*
