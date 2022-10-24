@@ -44,6 +44,13 @@ For further information [Aptos CLI](https://aptos.dev/cli-tools/aptos-cli-tool/u
 
 To find move modules ``` cd sources ``` from project root directory. 
 
+After publishing the modules we need to run the initialize function of the bridge module and register_coin method for the user who deployed the modules. We can do so by running the following commands:
+```
+    aptos move run --function-id <deployer address>::<coin module>::register_coin 
+
+    aptos move run --function-id <deployer address>::<bridge module>::initialize --args u8:<chain id> bool:<active status> u64:<fee amount>
+```
+
 ### Publishing Peaq Contracts
 To find the peaq contracts ``` cd peaq/ ``` from project root directory.
 For publishing the peaq contracts to testnet in the easy way we can

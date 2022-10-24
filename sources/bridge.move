@@ -24,6 +24,7 @@ module AptosPeaqBridge::aptos_peaq_bridge {
     const E_CONFIGURATION_ALREADY_EXISTS: u64 =8;
     const E_CONFIGURATION_NOT_INITIALIZED:u64 =9;
     const E_INSUFFICIENT_APTOS_FEE:u64 =10;
+    const E_ZERO_INPUT_NOT_ALLOWED: u64 = 11;
 
     // we will use deposit instead of transfer as transfer does'nt emit any event on aptos
     struct EventDeposit has store,drop {
@@ -43,6 +44,12 @@ module AptosPeaqBridge::aptos_peaq_bridge {
         event_deposit: EventHandle<EventDeposit>
     }
 
+    /**
+       * @param account this is the signer to which will hold the configuration for the bridge
+       * @param chainId_ chain id record for the bridge
+       * @param active should the bridge initialized in active state
+       * @param amount of fee which will be charged for using bridge services
+    */
     public entry fun intialize(account: &signer,chainId_:u8,active_:bool,fee_:u64) {
 
         let address_ = signer::address_of(account);
@@ -61,9 +68,15 @@ module AptosPeaqBridge::aptos_peaq_bridge {
         );
     }
 
+    /**
+    *   @param userAddressPeaq destination address on evm to which we want to transfer to
+    *   @param amount wrapped coin amoun which will be transfer
+    */
     public entry fun transfer_from (userAccount:&signer,userAddressPeaq:String, amount:u64) acquires Configuration{
+        // check if the bridge is configured
         assert_is_configured();
         
+        assert!( amount > 0 , E_ZERO_INPUT_NOT_ALLOWED);
         let user_add = signer::address_of(userAccount);
 
         let bridge_data = borrow_global_mut<Configuration>(ADMIN);
@@ -101,7 +114,12 @@ module AptosPeaqBridge::aptos_peaq_bridge {
 
     }
 
+        /**
+           * @param userAccount account of the user which we will mint the coins to
+           * @param amount the amoun which will be minted to the provided user address
+        */
       public entry fun transfer_to (account:&signer,userAccount:address, amount:u64) acquires Configuration{
+        // only admin can call this method
         assert_is_admin(account);
         assert_is_configured();
         
@@ -174,11 +192,17 @@ module AptosPeaqBridge::aptos_peaq_bridge {
 
     }
 
+    /**
+        * @notice assertion validating that the signer is the admin
+    */
     fun assert_is_admin(admin:&signer) {
         let admin_add = signer::address_of(admin);
         assert!(admin_add == ADMIN,E_FORBIDDEN);
     }
 
+    /**
+        * @notice assetion verifying that the bridge is actually deployed
+    */
     fun assert_is_configured (){
         assert!(exists<Configuration>(@AptosPeaqBridge), E_CONFIGURATION_NOT_INITIALIZED);
     }

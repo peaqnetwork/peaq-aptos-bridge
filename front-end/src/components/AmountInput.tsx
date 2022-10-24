@@ -30,7 +30,8 @@ export const AmountInput = ({
         <p className="textarea__currency">{isAptosToPeaq ? "WAPT" : "AGNG"}</p>
         <p className="textarea__balance">
           {" "}
-          {isAptosToPeaq && resource ? resource.data.coin.value / 1e6 : ""}{" "}
+          {resource}
+          {" "}
           Balance
         </p>
       </div>

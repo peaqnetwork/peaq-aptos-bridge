@@ -39,6 +39,7 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
   const [peaqSolidityContract, setPeaqSolidityContract] = useState<any>();
   const [aptosResourceData, setAptosResourceData] = useState<any>();
   const [account, setAccount] = useState<any>("");
+  const [balance, setBalance] = useState<any>("");
 
   useEffect(() => {
     const getResourceData = async () => {
@@ -48,8 +49,20 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
       );
       setAptosResourceData(resource);
     };
+
+    const getEvmData = async () => {
+      console.log("yo", process.env.REACT_APP_PEAQ_RPC_URL!);
+
+      const web3 = new Web3(
+        new Web3.providers.HttpProvider(process.env.REACT_APP_PEAQ_RPC_URL!)
+      );
+      const balance = await web3.eth.getBalance(originalMaskAddress);
+      const parsedBalance = Number(balance) / 1e18;
+      setBalance(parseFloat(parsedBalance.toFixed(2)));
+    };
     getResourceData();
-  }, [originalPetraAddress,isAptosToPeaq]);
+    getEvmData();
+  }, [originalPetraAddress, isAptosToPeaq, originalMaskAddress]);
 
   const onClickPetraConnect = useCallback(async () => {
     if (!isPetraInstalled) return;
@@ -74,6 +87,8 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
       const result = await (window as any)?.ethereum.request({
         method: "eth_requestAccounts",
       });
+      console.log("yo", (window as any)?.ethereum);
+
       setoriginalMaskAddress(result[0]);
       setConnectedMetaMaskAddress(prepareAddressForDisplay(result[0]));
     } catch (error) {
@@ -258,7 +273,11 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
         value={amount}
         onChange={onChangeTextarea}
         isAptosToPeaq={isAptosToPeaq}
-        resource={aptosResourceData}
+        resource={
+          isAptosToPeaq
+            ? aptosResourceData && aptosResourceData.data.coin.value / 1e6
+            : balance && balance
+        }
       />
       <BridgeFormSendButton
         onClick={onClickSend}
