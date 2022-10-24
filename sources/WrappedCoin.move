@@ -1,4 +1,4 @@
-module WrappedAptNewLatest::wrapped_apt_new_latest {
+module WrappedAptCoin::wrapped_apt {
     struct WrappedApt {}
 
     fun init_module(sender: &signer) {

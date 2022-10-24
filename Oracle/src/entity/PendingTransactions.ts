@@ -4,33 +4,31 @@ import {
   Column,
   CreateDateColumn,
   Unique,
+  BaseEntity,
 } from "typeorm";
 
-type Chain = "aptos" | "peaq";
+type TDestination = "aptos" | "peaq";
 
 @Entity()
-@Unique(["txHash"])
-export class TransactionPeaq {
+@Unique(["txHash", "from", "to"])
+export class PendingTransactions {
   @PrimaryGeneratedColumn("uuid")
   id: number;
 
   @Column()
   txHash: string;
 
-  @Column()
-  amount: string;
+  @Column("simple-array")
+  argumments: string[];
 
   @Column()
-  blockTime: string;
-
-  @Column()
-  processedAt: string;
-
-  @Column({ nullable: true })
-  nonce: string;
+  method: string;
 
   @Column({ type: "enum", enum: ["aptos", "peaq"] })
-  chain: Chain;
+  from: TDestination;
+
+  @Column({ type: "enum", enum: ["aptos", "peaq"] })
+  to: TDestination;
 
   @CreateDateColumn({ name: "created_at" }) "created_at": Date;
 }

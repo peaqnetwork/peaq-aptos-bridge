@@ -1,30 +1,29 @@
 //aptos-bridge contract
-module newBridgeLatest::new_bridge_latest {
+module AptosPeaqBridge::aptos_peaq_bridge {
 
     use std::signer;
     use std::event::{Self, EventHandle};
     use aptos_framework::account::{Self};
     use aptos_framework::coin::{Self};
     use aptos_framework::timestamp;
-    use aptos_framework::aptos_coin;
     use std::string::String;
-    use WrappedAptNewLatest::wrapped_apt_new_latest::WrappedApt;
+    use WrappedAptCoin::wrapped_apt::WrappedApt;
 
     // bridge admin
-    const ADMIN:address = @newBridgeLatest;
+    const ADMIN:address = @AptosPeaqBridge;
 
     // error constants
-    const E_ALREADY_DEPLOYED: u8 = 0;
-    const E_ALREADY_PAUSED: u8 =1; 
-    const E_ALREADY_UNPAUSED: u8 =2;
-    const E_BRIDGE_PAUSED: u8 =3;
-    const E_ADMIN_NOT_INITIALIZED: u8 =4;
-    const E_INVALID_DEPLOYER: u8 =5;
-    const E_INSUFFICIENT_BALANCE: u8 =6;
-    const E_FORBIDDEN: u8 =7;
-    const E_CONFIGURATION_ALREADY_EXISTS: u8 =8;
-    const E_CONFIGURATION_NOT_INITIALIZED:u8 =9;
-    const E_INSUFFICIENT_APTOS_FEE:u8 =10;
+    const E_ALREADY_DEPLOYED: u64 = 0;
+    const E_ALREADY_PAUSED: u64 =1; 
+    const E_ALREADY_UNPAUSED: u64 =2;
+    const E_BRIDGE_PAUSED: u64 =3;
+    const E_ADMIN_NOT_INITIALIZED: u64 =4;
+    const E_INVALID_DEPLOYER: u64 =5;
+    const E_INSUFFICIENT_BALANCE: u64 =6;
+    const E_FORBIDDEN: u64 =7;
+    const E_CONFIGURATION_ALREADY_EXISTS: u64 =8;
+    const E_CONFIGURATION_NOT_INITIALIZED:u64 =9;
+    const E_INSUFFICIENT_APTOS_FEE:u64 =10;
 
     // we will use deposit instead of transfer as transfer does'nt emit any event on aptos
     struct EventDeposit has store,drop {
@@ -44,7 +43,7 @@ module newBridgeLatest::new_bridge_latest {
         event_deposit: EventHandle<EventDeposit>
     }
 
-    public entry fun intialize(account: &signer) {
+    public entry fun intialize(account: &signer,chainId_:u8,active_:bool,fee_:u64) {
 
         let address_ = signer::address_of(account);
         assert!(address_ == ADMIN, E_INVALID_DEPLOYER);
@@ -53,10 +52,10 @@ module newBridgeLatest::new_bridge_latest {
         
         move_to<Configuration>(account, Configuration {
                 admin: address_,
-                chainId:2,
+                chainId:chainId_,
                 nonce: 0,
-                active:true,
-                fee:0,
+                active:active_,
+                fee:fee_,
                 event_deposit: account::new_event_handle<EventDeposit>(account),
             }
         );
@@ -72,21 +71,22 @@ module newBridgeLatest::new_bridge_latest {
         let active = &bridge_data.active;
         let nonce = &mut bridge_data.nonce;
         let chainId = &bridge_data.chainId;
-        let fee = &bridge_data.fee;
+        // let fee = &bridge_data.fee;
 
 
         assert!(*active == true,  E_BRIDGE_PAUSED);
         
         let balance = coin::balance<WrappedApt>(user_add);
-        assert!(balance > amount , E_INSUFFICIENT_BALANCE);
+        assert!(balance >= amount , E_INSUFFICIENT_BALANCE);
 
-        let aptosBalanace = coin::balance<aptos_coin::AptosCoin>(user_add);
-        assert!(aptosBalanace > fee , E_INSUFFICIENT_APTOS_FEE);
-
-        coin::transfer<aptos_coin::AptosCoin>(@newBridgeLatest,userAccount,*fee);
-        coin::transfer<WrappedApt>(userAccount,@newBridgeLatest,amount);
+        // let aptosbalance = coin::balance<aptos_coin::AptosCoin>(user_add);
+        // assert!(aptosbalance > *fee , E_INSUFFICIENT_APTOS_FEE);
 
         *nonce = *nonce + 1;
+
+        coin::transfer<WrappedApt>(userAccount,@AptosPeaqBridge,amount);
+        // coin::transfer<aptos_coin::AptosCoin>(@newBridgeLatest,userAccount,*fee);
+
        
         event::emit_event(
             &mut bridge_data.event_deposit,
@@ -111,9 +111,9 @@ module newBridgeLatest::new_bridge_latest {
         let nonce = &mut bridge_data.nonce;
         assert!(*active == true, E_BRIDGE_PAUSED);
         
-        WrappedAptNewLatest::wrapped_apt_new_latest::mint_to(account,userAccount,amount);
-
         *nonce = *nonce + 1;
+
+        WrappedAptCoin::wrapped_apt::mint_to(account,userAccount,amount);
 
     }
 
@@ -180,7 +180,7 @@ module newBridgeLatest::new_bridge_latest {
     }
 
     fun assert_is_configured (){
-        assert!(exists<Configuration>(@newBridgeLatest), E_CONFIGURATION_NOT_INITIALIZED);
+        assert!(exists<Configuration>(@AptosPeaqBridge), E_CONFIGURATION_NOT_INITIALIZED);
     }
 
 }

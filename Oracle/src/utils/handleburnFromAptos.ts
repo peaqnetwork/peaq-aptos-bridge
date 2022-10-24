@@ -1,69 +1,68 @@
-import {
-  aptosClient,
-  aptosContractAddress,
-  aptosDefaultGas,
-  aptosMaxGas,
-  aptosPrivateKey,
-  aptosPublicKey,
-} from "../config";
-import {
-  AptosAccount,
-  AptosAccountObject,
-  AptosClient,
-  BCS,
-  TxnBuilderTypes,
-} from "aptos";
+import { AppDataSource, aptosCoinModule, aptosTransaction } from "../config";
+import { BCS } from "aptos";
+import { PendingTransactions } from "../entity/PendingTransactions";
+import { TransactionPeaq } from "../entity/TransactionsPeaq";
 
-export default async function (amount: number) {
-  const { sequence_number: sequenceNumber } = await aptosClient.getAccount(
-    aptosContractAddress
-  );
-  const chainID = await aptosClient.getChainId();
+/**
+ *
+ * @param amount amount of coins which we want to burn (cannot be in decimals) e.g. 0.2 = 200000
+ * @param txHash hash of the transaction which we already processing
+ * @returns Promise resolve if the process was succesfull otherwise rejects
+ */
+export default async function (amount: number, txHash: string) {
+  const pendingTransactionsRepo =
+    AppDataSource.getRepository(PendingTransactions);
+  try {
+    const { success, timestamp } =
+      await aptosTransaction.submitRawTransactionAndWaitForResult(
+        "burn_from",
+        aptosCoinModule,
+        [BCS.bcsSerializeUint64(amount)]
+      );
+    if (success) {
+      const transactionRepo = AppDataSource.getRepository(TransactionPeaq);
+      const transaction = new TransactionPeaq();
+      transaction.amount = amount.toString();
+      transaction.blockTime = timestamp;
+      transaction.chain = "aptos";
+      transaction.txHash = txHash;
+      transaction.processedAt = String(Math.floor(Date.now() / 1000));
+      await transactionRepo.save(transaction);
 
-  const {
-    AccountAddress,
-    EntryFunction,
-    TransactionPayloadEntryFunction,
-    RawTransaction,
-    ChainId,
-  } = TxnBuilderTypes;
+      // check if any pending transaction
+      const alreadyInPending = await pendingTransactionsRepo.findOneBy({
+        txHash,
+        to: "peaq",
+        from: "aptos",
+        method: "burn_from",
+      });
 
-  const payload = new TransactionPayloadEntryFunction(
-    EntryFunction.natural(
-      `${aptosContractAddress}::wrapped_apt_new_latest`,
-      "burn_from",
-      [],
-      [BCS.bcsSerializeUint64(amount)]
-    )
-  );
+      alreadyInPending &&
+        (await pendingTransactionsRepo.remove(alreadyInPending));
+      return Promise.resolve("Successfully burned");
+    }
+  } catch (error) {
+    console.log("error", error.message);
 
-  const rawTxn = new RawTransaction(
-    AccountAddress.fromHex(aptosContractAddress),
-    BigInt(sequenceNumber),
-    payload,
-    BigInt(aptosMaxGas),
-    BigInt(aptosDefaultGas),
-    BigInt(Math.floor(Date.now() / 1000) + 10),
-    new ChainId(chainID)
-  );
-  const accountObject: AptosAccountObject = {
-    privateKeyHex: aptosPrivateKey,
-    publicKeyHex: aptosPublicKey,
-    address: aptosContractAddress,
-  };
-  const account = AptosAccount.fromAptosAccountObject(accountObject);
+    const alreadyInPending = await pendingTransactionsRepo.findOneBy({
+      txHash,
+      to: "peaq",
+      from: "aptos",
+      method: "burn_from",
+    });
 
-  const bcsTxn = AptosClient.generateBCSTransaction(account, rawTxn);
-  const transactionRes = await aptosClient.submitSignedBCSTransaction(bcsTxn);
-  console.log("transaction", transactionRes);
-
-  //@ts-ignore
-  const { vm_status } = await aptosClient.waitForTransactionWithResult(
-    transactionRes.hash
-  );
-  console.log("vm_status", vm_status);
-
-  if (vm_status === "Executed successfully") {
-    console.log("success yo");
+    if (alreadyInPending) {
+      return Promise.reject("Transaction already in pending");
+    }
+    // we are only putting this part of the transaction inside pending transactions because only this part failed
+    // transfer_to method was succesfull so we don'nt want process that again
+    const pendingTransaction = new PendingTransactions();
+    pendingTransaction.method = "burn_from";
+    pendingTransaction.argumments = [String(amount)];
+    pendingTransaction.to = "peaq";
+    pendingTransaction.from = "aptos";
+    pendingTransaction.txHash = txHash;
+    await pendingTransactionsRepo.save(pendingTransaction);
+    throw new Error("Could'nt process burn for aptos");
   }
 }

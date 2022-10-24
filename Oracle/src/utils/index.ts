@@ -1,10 +1,10 @@
 import handleTransferFromPeaqToAptos from "./handleTransferFromPeaqToAptos";
-import handleBurnFromPeaqToAptos from "./handleBurnFromPeaqToAptos";
+import promiseTimeOut from "./promiseTimeout";
 import handleTransferFromAptosToPeaq from "./handleTransferFromAptosToPeaq";
 import { checkTxStatus } from "./checkTxStatus";
 export default {
   handleTransferFromPeaqToAptos,
-  handleBurnFromPeaqToAptos,
   handleTransferFromAptosToPeaq,
-  checkTxStatus
+  promiseTimeOut,
+  checkTxStatus,
 };

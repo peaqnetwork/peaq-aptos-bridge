@@ -1,4 +1,4 @@
-import { AptosClient, BCS } from "aptos";
+import { AptosClient } from "aptos";
 import { ChangeEventHandler, useCallback, useEffect, useState } from "react";
 import { checkIfMetaMaskInstalled } from "../utils/checkIfMetaMaskInstalled";
 import { checkIfPetraInstalled } from "../utils/checkIfPetraInstalled";
@@ -12,9 +12,14 @@ import axios from "axios";
 import { abi } from "./abi/abi";
 
 const contractAbi: any = abi;
-const contractAddress = "0xF8d6945D4D2210b3fdb656612306D8C4546AD04f";
+const contractAddress =
+  process.env.REACT_APP_PEAQ_CONTRACT ||
+  "0xF8d6945D4D2210b3fdb656612306D8C4546AD04f";
 
-const client = new AptosClient("https://fullnode.devnet.aptoslabs.com/v1");
+const client = new AptosClient(
+  process.env.REACT_APP_APTOS_NODE_URL ||
+    "https://fullnode.devnet.aptoslabs.com/v1"
+);
 
 type Props = {
   setShowSpinner: React.Dispatch<React.SetStateAction<boolean>>;
@@ -70,34 +75,64 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
     // after validation
     setIsAmountValid(true);
   };
+  const checkAndRegisterCoin = useCallback(async () => {
+    try {
+      await client.getAccountResource(
+        originalPetraAddress,
+        `0x1::coin::CoinStore<${process.env.REACT_APP_APTOS_MODULE_ADDRESS}::${process.env.REACT_APP_APTOS_COIN_MODULE}::WrappedApt>`
+      );
+    } catch (error) {
+      const _error = JSON.parse(JSON.stringify(error));
+      if (_error.status === 404) {
+        const transaction = {
+          type: "entry_function_payload",
+          function: `${process.env.REACT_APP_APTOS_MODULE_ADDRESS}::${process.env.REACT_APP_APTOS_COIN_MODULE}::register_coin`,
+          type_arguments: [],
+          arguments: [],
+        };
+        await (window as any).aptos.signAndSubmitTransaction(transaction);
+      }
+    }
+  }, [originalPetraAddress]);
 
   const sendAptosToPeaqTransaction = useCallback(async () => {
+    await checkAndRegisterCoin();
     const transaction = {
       type: "entry_function_payload",
-      function: `0xaa15900b0be22a31327223f4f7b26254bb5d36b922a5fcdfa057604cd8754f24::new_bridge_latest::transfer_from`,
+      function: `${process.env.REACT_APP_APTOS_MODULE_ADDRESS}::${process.env.REACT_APP_APTOS_BRIDGE_MODULE}::transfer_from`,
       type_arguments: [],
       arguments: [originalMaskAddress, +amount * 1e6],
     };
 
     try {
       setShowSpinner(true);
-      const pendingTransasction = await (
-        window as any
-      ).aptos.signAndSubmitTransaction(transaction);
-      axios({
-        method: "post",
-        url: "http://localhost:3002/api/process-transfer",
-        data: {
-          txHash: pendingTransasction.hash,
-        },
+      const response = await axios.request({
+        method: "GET",
+        url: `${process.env.REACT_APP_ORACLE_END_POINT}/api/ping`,
       });
+      if (response.data.success) {
+        const pendingTransasction = await (
+          window as any
+        ).aptos.signAndSubmitTransaction(transaction);
+
+        if (pendingTransasction.hash) {
+          await axios.request({
+            method: "post",
+            url: `${process.env.REACT_APP_ORACLE_END_POINT}/api/process-transfer`,
+            data: {
+              txHash: pendingTransasction.hash,
+            },
+          });
+        }
+      }
     } finally {
       setShowSpinner(false);
     }
-  }, [originalMaskAddress, setShowSpinner, amount]);
+  }, [checkAndRegisterCoin, originalMaskAddress, amount, setShowSpinner]);
 
   const sendPeaqToAptosTransaction = async () => {
     try {
+      await checkAndRegisterCoin();
       await peaqSolidityContract?.methods
         .transfer_from(originalPetraAddress)
         .send({
