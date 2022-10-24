@@ -51,8 +51,6 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
     };
 
     const getEvmData = async () => {
-      console.log("yo", process.env.REACT_APP_PEAQ_RPC_URL!);
-
       const web3 = new Web3(
         new Web3.providers.HttpProvider(process.env.REACT_APP_PEAQ_RPC_URL!)
       );
