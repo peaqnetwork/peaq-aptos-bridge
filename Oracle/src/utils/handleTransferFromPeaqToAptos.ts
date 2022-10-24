@@ -32,7 +32,6 @@ export default async function (params: Log, web3: Web3) {
       params.data,
       params.topics
     );
-
     // convert amount value from peaq decimals to aptos wrapped coin decimals
     const aptosAmount = BigNumber(String(decodedData.amount))
       .dividedBy(BigNumber(1e18))

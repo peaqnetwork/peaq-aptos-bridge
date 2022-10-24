@@ -1,4 +1,4 @@
-export const abi =[
+export const abi = [
 	{
 		"inputs": [
 			{
@@ -58,75 +58,41 @@ export const abi =[
 		"type": "event"
 	},
 	{
+		"anonymous": false,
 		"inputs": [
 			{
-				"internalType": "uint64",
+				"indexed": false,
+				"internalType": "uint128",
 				"name": "amount",
-				"type": "uint64"
-			}
-		],
-		"name": "modify_fee",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "pause",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
+				"type": "uint128"
+			},
 			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "recipent",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint64",
+				"name": "timestamp",
+				"type": "uint64"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint128",
+				"name": "nonce",
+				"type": "uint128"
+			},
+			{
+				"indexed": false,
 				"internalType": "uint8",
-				"name": "chainId_",
+				"name": "chainId",
 				"type": "uint8"
 			}
 		],
-		"name": "set_chain_id",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "peaqAddress",
-				"type": "bytes32"
-			}
-		],
-		"name": "transfer_from",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address payable",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "transfer_to",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "un_pause",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
+		"name": "eventDeposit",
+		"type": "event"
 	},
 	{
 		"inputs": [],
@@ -172,19 +138,6 @@ export const abi =[
 		"name": "fee",
 		"outputs": [
 			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "get_balance",
-		"outputs": [
-			{
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
@@ -195,7 +148,7 @@ export const abi =[
 	},
 	{
 		"inputs": [],
-		"name": "get_chain_id",
+		"name": "getChainId",
 		"outputs": [
 			{
 				"internalType": "uint8",
@@ -208,15 +161,86 @@ export const abi =[
 	},
 	{
 		"inputs": [],
-		"name": "get_fee",
+		"name": "getFee",
 		"outputs": [
 			{
-				"internalType": "uint64",
+				"internalType": "uint256",
 				"name": "",
-				"type": "uint64"
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "modifyFee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "pause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint8",
+				"name": "chainId_",
+				"type": "uint8"
+			}
+		],
+		"name": "setChainId",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "peaqAddress",
+				"type": "bytes32"
+			}
+		],
+		"name": "transferFrom",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "transferTo",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "unPause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]

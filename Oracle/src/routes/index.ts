@@ -6,7 +6,7 @@ import { PendingTransactions } from "../entity/PendingTransactions";
 import { TransactionPeaq } from "../entity/TransactionsPeaq";
 import txHashLock from "../middleware/txHashLock";
 
-import handleTransferFromAptosToPeaq from "../utils/handleTransferFromAptosToPeaq";
+import { checkTxStatus } from "../utils/checkTxStatus";
 
 const router = express.Router();
 
@@ -53,11 +53,16 @@ router.post(
         });
       }
 
-      await handleTransferFromAptosToPeaq(txHash);
-
-      return res
-        .status(200)
-        .json({ success: true, message: "Transaction successfull" });
+      const res_ = await checkTxStatus(txHash, true);
+      if (res_) {
+        return res
+          .status(200)
+          .json({ success: true, message: "Transaction successfull" });
+      }
+      return res.status(400).json({
+        success: false,
+        message: "Something went wrong please try again later",
+      });
     } catch (error) {
       console.error("error in process transfer", error);
       return res.status(500).json({

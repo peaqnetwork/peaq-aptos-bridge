@@ -14,7 +14,7 @@ import { abi } from "./abi/abi";
 const contractAbi: any = abi;
 const contractAddress =
   process.env.REACT_APP_PEAQ_CONTRACT ||
-  "0xF8d6945D4D2210b3fdb656612306D8C4546AD04f";
+  "0x76de86c1B51252E2D29B583d4c8Df2ab92cFCcDB";
 
 const client = new AptosClient(
   process.env.REACT_APP_APTOS_NODE_URL ||
@@ -37,7 +37,20 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
   const [isAptosToPeaq, setIsAptosToPeaq] = useState(true);
   const [web3js, setWeb3js] = useState<Web3>();
   const [peaqSolidityContract, setPeaqSolidityContract] = useState<any>();
+  const [aptosResourceData, setAptosResourceData] = useState<any>();
   const [account, setAccount] = useState<any>("");
+
+  useEffect(() => {
+    const getResourceData = async () => {
+      const resource = await client.getAccountResource(
+        originalPetraAddress,
+        `0x1::coin::CoinStore<${process.env.REACT_APP_APTOS_MODULE_ADDRESS}::${process.env.REACT_APP_APTOS_COIN_MODULE}::WrappedApt>`
+      );
+      setAptosResourceData(resource);
+    };
+    getResourceData();
+  }, [originalPetraAddress,isAptosToPeaq]);
+
   const onClickPetraConnect = useCallback(async () => {
     if (!isPetraInstalled) return;
     try {
@@ -134,7 +147,7 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
     try {
       await checkAndRegisterCoin();
       await peaqSolidityContract?.methods
-        .transfer_from(originalPetraAddress)
+        .transferFrom(originalPetraAddress)
         .send({
           from: originalMaskAddress,
           value: String(BigInt(+amount * 1e18)),
@@ -241,7 +254,12 @@ export const BridgeForm = ({ setShowSpinner }: Props) => {
           }
         />
       </div>
-      <AmountInput value={amount} onChange={onChangeTextarea} />
+      <AmountInput
+        value={amount}
+        onChange={onChangeTextarea}
+        isAptosToPeaq={isAptosToPeaq}
+        resource={aptosResourceData}
+      />
       <BridgeFormSendButton
         onClick={onClickSend}
         isButtonEnabled={

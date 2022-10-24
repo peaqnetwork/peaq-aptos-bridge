@@ -44,11 +44,11 @@ export default async function (txHash: string) {
 
   try {
     const estimatedGas = await contract.methods
-      .transfer_to(checkSumPeaqAddress, String(amountForPeaq))
+      .transferTo(checkSumPeaqAddress, String(amountForPeaq))
       .estimateGas();
 
     await contract.methods
-      .transfer_to(checkSumPeaqAddress, String(amountForPeaq))
+      .transferTo(checkSumPeaqAddress, String(amountForPeaq))
       .send({
         from: account.address,
         gas: estimatedGas + 100,

@@ -37,8 +37,7 @@ contract Bridge is IBridge{
 
     function transferFrom(bytes32 peaqAddress) external payable {
         require(active == true, "Bridge is paused");
-        uint256 balance = payable(msg.sender).balance;
-        require(balance > msg.value, "Insufficient balance");
+        require(msg.value > 0 , "Value should be greater then zero");
         nonce = nonce + 1;
         emit eventDeposit(
             msg.value,
@@ -54,8 +53,7 @@ contract Bridge is IBridge{
         onlyAdmin
     {
         require(active == true, "Bridge is paused");
-        uint256 balance = address(this).balance;
-        require(balance > amount, "Insufficient funds in bridge");
+        require(amount > 0, "Insufficient funds in bridge");
         nonce = nonce + 1;
         payable(user).transfer(amount);
     }
@@ -74,7 +72,7 @@ contract Bridge is IBridge{
         return fee;
     }
 
-    function modifyFee(uint64 amount) external onlyAdmin {
+    function modifyFee(uint256 amount) external onlyAdmin {
         fee = amount;
     }
 
